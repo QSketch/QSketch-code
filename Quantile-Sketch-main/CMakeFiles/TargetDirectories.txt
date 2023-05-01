@@ -1,4 +1,0 @@
-/root/Quantile-Sketch-main/CMakeFiles/rebuild_cache.dir
-/root/Quantile-Sketch-main/CMakeFiles/edit_cache.dir
-/root/Quantile-Sketch-main/CMakeFiles/test.dir
-/root/Quantile-Sketch-main/CMakeFiles/main.dir
