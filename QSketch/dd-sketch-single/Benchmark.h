@@ -1,5 +1,4 @@
 #include <bits/stdc++.h>
-#include <linux/types.h>
 #include "DDSketch.h"
 #include "GroundTruth.h"
 #include "hash.h"
@@ -14,18 +13,6 @@ struct CAIDA_Tuple {
 #define MAXN 1000000
 #define mod 10000019
 #define web_len 383360
-
-__u64 rdtsc()
-{
-        __u32 lo,hi;
-
-
-        __asm__ __volatile__
-        (
-         "rdtsc":"=a"(lo),"=d"(hi)
-        );
-        return (__u64)hi<<32|lo;
-}
 
 class CAIDA_Benchmark {
 public:
@@ -51,7 +38,7 @@ public:
 		}
 		for (int i = 0; i < mod; i++) head[i] = 0;
     }
-	std::pair<std::pair<double, double>, double> Run(double w, uint32_t memory) {
+	std::pair<double, double> Run(double w, uint32_t memory) {
         Init();
 		uint32_t run_length = 20000000;
         double query_quantile = w;
@@ -101,29 +88,17 @@ public:
 
         tottime = clock() - tt;
 
-        double totaltime1 = (double)(tottime) / CLOCKS_PER_SEC;
-        double throughput1 = double((int)ins.size()) / totaltime1;
+        double totaltime = (double)(tottime) / CLOCKS_PER_SEC;
+        double throughput = double(run_length) / totaltime;
 
 		//std::cout << totaltime << std::endl;
 
-		double error_qs = 0;
+		double error_dd = 0;
+        uint64_t predict_dd = dd.query(1, query_quantile);
+        double predict_quantile_dd = gt.query(1, predict_dd);
+        error_dd += abs(predict_quantile_dd - query_quantile);
 
-        __u64 begin = rdtsc();
-        uint64_t predict_qs;
-        for (int t = 1; t <= 1000; t++)
-        {
-            predict_qs = dd.query(1, query_quantile);
-        }
-        __u64 end = rdtsc();
-        double throughput2 = 1000000000.00 / (double)(end - begin);
-        double predict_quantile_qs = gt.query(1, predict_qs);
-
-        //std::cout << predict_quantile_qs << std::endl;
-
-        error_qs += fabs(predict_quantile_qs - query_quantile);
-
-
-        return std::make_pair(std::make_pair(throughput1, throughput2), error_qs);
+        return std::make_pair(throughput, error_dd );
 	}
 
 private:
@@ -155,7 +130,7 @@ public:
         }
 	}
 	~synthetic_Benchmark() {}
-    std::pair<std::pair<double, double>, double> Run(double w, uint32_t memory) {
+    std::pair<double, double> Run(double w, uint32_t memory) {
 		uint32_t run_length = 20000000;
         double query_quantile = w;
         double tottime = 0.00, tt;
@@ -179,29 +154,17 @@ public:
 
         tottime = clock() - tt;
 
-        double totaltime1 = (double)(tottime) / CLOCKS_PER_SEC;
-        double throughput1 = double((int)ins.size()) / totaltime1;
+        double totaltime = (double)(tottime) / CLOCKS_PER_SEC;
+        double throughput = double(run_length) / totaltime;
 
 		//std::cout << totaltime << std::endl;
 
-		double error_qs = 0;
+		double error_dd = 0;
+        uint64_t predict_dd = dd.query(1, query_quantile);
+        double predict_quantile_dd = gt.query(1, predict_dd);
+        error_dd += abs(predict_quantile_dd - query_quantile);
 
-        __u64 begin = rdtsc();
-        uint64_t predict_qs;
-        for (int t = 1; t <= 1000; t++)
-        {
-            predict_qs = dd.query(1, query_quantile);
-        }
-        __u64 end = rdtsc();
-        double throughput2 = 1000000000.00 / (double)(end - begin);
-        double predict_quantile_qs = gt.query(1, predict_qs);
-
-        //std::cout << predict_quantile_qs << std::endl;
-
-        error_qs += fabs(predict_quantile_qs - query_quantile);
-
-
-        return std::make_pair(std::make_pair(throughput1, throughput2), error_qs);
+        return std::make_pair(throughput, error_dd );
 	}
 
 private:

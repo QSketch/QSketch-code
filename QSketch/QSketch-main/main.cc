@@ -13,7 +13,7 @@ int main(int argc, const char** argv) {
 	string path3 = "../Seattle/SeattleData_";
     string path4 = "../tap.dat";
 
-	std::pair<std::pair<double, double>, double> res[333], cur;
+	std::pair<double, double> res[333], cur;
     int cnt = 0;
 
     CAIDA_Benchmark benchmark(path1);
@@ -42,14 +42,7 @@ int main(int argc, const char** argv) {
 
     for (int i = 1; i <= cnt; i++) 
     {
-        std::cout << std::fixed<<std::setprecision(4) << res[i].first.first << "	";
-    }
-
-    std::cout << std::endl;
-
-    for (int i = 1; i <= cnt; i++) 
-    {
-        std::cout << std::fixed<<std::setprecision(4) << res[i].first.second << "	";
+        std::cout << std::fixed<<std::setprecision(4) << res[i].first << "	";
     }
 
     std::cout << std::endl;
@@ -66,10 +59,21 @@ int main(int argc, const char** argv) {
 
     for (double w = 0.10; w < 0.95; w += 0.10)
     {
-        for (int memory = 30; memory <= 80; memory += 10)
+        for (int memory = 500; memory <= 1500; memory += 200)
         {
             v.clear();
-            v.push_back(15); v.push_back(2);v.push_back(2);v.push_back(2);
+            if (memory <= 700) 
+            {
+                v.push_back(15); v.push_back(2);v.push_back(2);v.push_back(2);
+            }
+            else if (memory <= 1100)
+            {
+                v.push_back(25); v.push_back(2);v.push_back(2);v.push_back(2);
+            }
+            else
+            {
+                v.push_back(30); v.push_back(2);v.push_back(2);v.push_back(2);
+            }
 			++cnt;
             cur = benchmark2.Run(w, 0.1, 40, memory, 11, 7, 5.80, v);
             res[cnt] = cur;
@@ -78,14 +82,7 @@ int main(int argc, const char** argv) {
 
     for (int i = 1; i <= cnt; i++) 
     {
-        std::cout << std::fixed<<std::setprecision(4) << res[i].first.first << "	";
-    }
-
-    std::cout << std::endl;
-
-    for (int i = 1; i <= cnt; i++) 
-    {
-        std::cout << std::fixed<<std::setprecision(4) << res[i].first.second << "	";
+        std::cout << std::fixed<<std::setprecision(4) << res[i].first << "	";
     }
 
     std::cout << std::endl;
@@ -103,10 +100,21 @@ int main(int argc, const char** argv) {
 
     for (double w = 0.10; w < 0.95; w += 0.10)
     {
-        for (int memory = 50; memory <= 100; memory += 10)
+        for (int memory = 500; memory <= 1500; memory += 200)
         {
             v.clear();
-            v.push_back(15); v.push_back(2);v.push_back(2);v.push_back(2);
+            if (memory <= 700) 
+            {
+                v.push_back(15); v.push_back(2);v.push_back(2);v.push_back(2);
+            }
+            else if (memory <= 1100)
+            {
+                v.push_back(25); v.push_back(2);v.push_back(2);v.push_back(2);
+            }
+            else
+            {
+                v.push_back(30); v.push_back(2);v.push_back(2);v.push_back(2);
+            }
 			++cnt;
             cur = benchmark3.Run(w, 0.1, 40, memory, 11, 7, 5.80, v);
             res[cnt] = cur;
@@ -115,14 +123,7 @@ int main(int argc, const char** argv) {
 
     for (int i = 1; i <= cnt; i++) 
     {
-        std::cout << std::fixed<<std::setprecision(4) << res[i].first.first << "	";
-    }
-
-    std::cout << std::endl;
-
-    for (int i = 1; i <= cnt; i++) 
-    {
-        std::cout << std::fixed<<std::setprecision(4) << res[i].first.second << "	";
+        std::cout << std::fixed<<std::setprecision(4) << res[i].first << "	";
     }
 
     std::cout << std::endl;
@@ -163,14 +164,7 @@ int main(int argc, const char** argv) {
 
     for (int i = 1; i <= cnt; i++) 
     {
-        std::cout << std::fixed<<std::setprecision(4) << res[i].first.first << "	";
-    }
-
-    std::cout << std::endl;
-
-    for (int i = 1; i <= cnt; i++) 
-    {
-        std::cout << std::fixed<<std::setprecision(4) << res[i].first.second << "	";
+        std::cout << std::fixed<<std::setprecision(4) << res[i].first << "	";
     }
 
     std::cout << std::endl;
