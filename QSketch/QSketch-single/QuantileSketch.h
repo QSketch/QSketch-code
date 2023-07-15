@@ -28,8 +28,8 @@ public:
 		buffer_size = new uint32_t [layers];
 		memset(buffer_size, 0, sizeof(uint32_t) * layers);
 		num = 0;
-		for (int i = 0; i < layers; i++) std::cout << len[i] << " ";
-		std::cout << std::endl;
+		//for (int i = 0; i < layers; i++) std::cout << len[i] << " ";
+		//std::cout << std::endl;
 
 		ss = 0.00;
 	}

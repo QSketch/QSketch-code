@@ -1,9 +1,21 @@
 #include <bits/stdc++.h>
+#include <linux/types.h>
 #include "tdigestperflow.h"
 #include "GroundTruth.h"
 #include "hash.h"
 #include "Mmap.h"
 
+__u64 rdtsc()
+{
+        __u32 lo,hi;
+
+
+        __asm__ __volatile__
+        (
+         "rdtsc":"=a"(lo),"=d"(hi)
+        );
+        return (__u64)hi<<32|lo;
+}
 
 struct CAIDA_Tuple {
     uint64_t timestamp;
@@ -37,7 +49,7 @@ public:
 		}
 		for (int i = 0; i < mod; i++) head[i] = 0;
     }
-	std::pair<double, double> Run(double w, uint32_t memory, double compression) {
+	std::pair<std::pair<double, double>, double> Run(double w, uint32_t memory, double compression) {
         Init();
 		uint32_t run_length = 20000000;
         double query_quantile = w;
@@ -86,18 +98,29 @@ public:
 
         tottime = clock() - tt;
 
-        double totaltime = (double)(tottime) / CLOCKS_PER_SEC;
-        double throughput = double(run_length) / totaltime;
+        double totaltime1 = (double)(tottime) / CLOCKS_PER_SEC;
+        double throughput1 = double((int)ins.size()) / totaltime1;
 
-		//std::cout << "insertion ends\n";
+		//std::cout << totaltime << std::endl;
 
-		double error_td = 0;
+		double error_qs = 0;
 
-        uint64_t predict_td = td.query(1, query_quantile);
-        double predict_quantile_td = gt.query(1, predict_td);
-        error_td += abs(predict_quantile_td - query_quantile);
+        __u64 begin = rdtsc();
+        uint64_t predict_qs;
+        for (int t = 1; t <= 1000; t++)
+        {
+            predict_qs = td.query(1, query_quantile);
+        }
+        __u64 end = rdtsc();
+        double throughput2 = 1000000000.00 / (double)(end - begin);
+        double predict_quantile_qs = gt.query(1, predict_qs);
 
-        return std::make_pair(throughput, error_td);
+        //std::cout << predict_quantile_qs << std::endl;
+
+        error_qs += fabs(predict_quantile_qs - query_quantile);
+
+
+        return std::make_pair(std::make_pair(throughput1, throughput2), error_qs);
 	}
 
 private:
@@ -129,7 +152,7 @@ public:
         }
 	}
 	~synthetic_Benchmark() {}
-    std::pair<double, double> Run(double w, uint32_t memory, double compression) {
+    std::pair<std::pair<double, double>, double> Run(double w, uint32_t memory, double compression) {
         uint32_t run_length = 20000000;
         double query_quantile = w;
         double tottime = 0.00, tt;
@@ -153,18 +176,29 @@ public:
 
         tottime = clock() - tt;
 
-        double totaltime = (double)(tottime) / CLOCKS_PER_SEC;
-        double throughput = double(run_length) / totaltime;
+        double totaltime1 = (double)(tottime) / CLOCKS_PER_SEC;
+        double throughput1 = double((int)ins.size()) / totaltime1;
 
-		//std::cout << "insertion ends\n";
+		//std::cout << totaltime << std::endl;
 
-		double error_td = 0;
+		double error_qs = 0;
 
-        uint64_t predict_td = td.query(1, query_quantile);
-        double predict_quantile_td = gt.query(1, predict_td);
-        error_td += abs(predict_quantile_td - query_quantile);
+        __u64 begin = rdtsc();
+        uint64_t predict_qs;
+        for (int t = 1; t <= 1000; t++)
+        {
+            predict_qs = td.query(1, query_quantile);
+        }
+        __u64 end = rdtsc();
+        double throughput2 = 1000000000.00 / (double)(end - begin);
+        double predict_quantile_qs = gt.query(1, predict_qs);
 
-        return std::make_pair(throughput, error_td);
+        //std::cout << predict_quantile_qs << std::endl;
+
+        error_qs += fabs(predict_quantile_qs - query_quantile);
+
+
+        return std::make_pair(std::make_pair(throughput1, throughput2), error_qs);
 	}
 
 private:

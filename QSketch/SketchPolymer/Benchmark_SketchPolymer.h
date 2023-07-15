@@ -1,132 +1,31 @@
-#ifndef _BENCHMARK_H_
-#define _BENCHMARK_H_
-
 #include <bits/stdc++.h>
-#include <hash.h>
-#include <Mmap.h>
 #include <sys/time.h>
-#include "CorrectDetector.h"
-#include "kll_sketch.hpp"
-#include "Param.h"
-#include<time.h>
+#include "SketchPolymer.h"
+#include "GroundTruth.h"
+#include "hash.h"
+#include "Mmap.h"
 
-#define MAXN 20000000
-#define mod 10000019
-#define n_slice 688
-#define MOD 13908490328490391
-
-
-template<typename ID_TYPE>
-class compare_kll
-{
-public:
-    uint64_t max_memory;
-    uint32_t k_of_sketch;
-    uint64_t max_memory_per_bucket;
-    uint64_t bucket_num;
-    uint64_t item_inserted;
-    
-    std::vector<datasketches::kll_sketch<uint64_t>> array_kll;
-    
-    compare_kll(uint64_t mem, uint32_t KK, uint64_t total_item)
-    {
-        max_memory=mem*1024;
-        k_of_sketch=KK;
-
-        {
-            datasketches::kll_sketch<uint64_t> sketch_temp(k_of_sketch);
-            for (int i=0;i<total_item;++i)
-                sketch_temp.update(i);
-            max_memory_per_bucket = sketch_temp.get_serialized_size_bytes();
-    
-            double temp = double(max_memory) / double( max_memory_per_bucket ); 
-            bucket_num = uint64_t(floor(temp));
-        }
-        
-        //compute max_memory_per_bucket and bucket_num again. a bucket does not need to insert all item
-        {
-            uint64_t new_total_item = total_item/bucket_num;
-            datasketches::kll_sketch<uint64_t> sketch_temp1(k_of_sketch);
-            for (int i=0;i<new_total_item;++i)
-                sketch_temp1.update(i);
-            max_memory_per_bucket = sketch_temp1.get_serialized_size_bytes();
-    
-            double temp1 = double(max_memory) / double( max_memory_per_bucket ); 
-            bucket_num = uint64_t(floor(temp1));
-        }
-
-        for (int i=0;i<bucket_num;++i)
-            array_kll.push_back(datasketches::kll_sketch<uint64_t>(k_of_sketch));
-
-        item_inserted = 0;
-    } 
-    
-    void insert(ID_TYPE id, uint64_t timestamp)
-    {
-        uint32_t index = hash(id, 1024) % array_kll.size();
-        array_kll[index].update(timestamp);
-        item_inserted++;
-    }
-    uint64_t query(ID_TYPE id, double w)
-    {
-        uint32_t index = hash(id, 1024) % array_kll.size();
-
-        const double fractions[1] {w};
-        auto quantiles = array_kll[index].get_quantiles(fractions, 1);
-
-        return quantiles[0];
-    }
-    uint32_t get_index(ID_TYPE id)
-    {
-        return hash(id, 1024) % array_kll.size();
-    }
-    uint32_t actual_len()
-    {
-        uint64_t res=0;
-        for (int i=0;i<bucket_num;++i)
-        {
-            res += array_kll[i].get_serialized_size_bytes();
-        }
-        return res;
-    }
-    void print_status()
-    {
-        uint32_t res=0;
-        for (int i=0;i<bucket_num;++i)
-        {
-            res += array_kll[i].get_serialized_size_bytes();
-        }
-        
-        printf("-------compare_kll status------------\n");
-
-        printf("----max_memory            : %lu bytes = %lu Kb\n", max_memory, max_memory/1024);
-        printf("----k_of_sketch           : %u \n",k_of_sketch);
-        printf("----max_memory_per_bucket : %lu bytes = %lu Kb\n", max_memory_per_bucket, max_memory_per_bucket/1024);
-        printf("----bucket_num            : %lu \n",bucket_num);
-        printf("----item_inserted         : %lu \n",item_inserted);
-        printf("----total size            : %u bytes = %u Kb\n", res, res/1024);
-        printf("----nominal size - actual_size = %ld bytes = %ld Kb\n", max_memory-res, (max_memory-res)/1024);
-
-        printf("-------compare_kll status end--------\n");
-    }
-};
 
 struct CAIDA_Tuple {
     uint64_t timestamp;
     uint64_t id;
 };
 
-class CAIDA_Benchmark 
-{
+#define MAXN 20000000
+#define mod 10000019
+#define web_len 383360
+#define n_slice 688
+#define MOD 13908490328490391
+
+class CAIDA_Benchmark {
 public:
-    CAIDA_Benchmark(std::string PATH) 
-    {
-        //std::cout<<"dataset = "<<PATH<<std::endl;
-        load_result = Load(PATH.c_str());
+	CAIDA_Benchmark() {}
+	CAIDA_Benchmark(std::string path) {
+		load_result = Load(path.c_str());
         dataset = (CAIDA_Tuple*)load_result.start;
         length = load_result.length / sizeof(CAIDA_Tuple);
-    }
-    ~CAIDA_Benchmark() {}
+	}
+	~CAIDA_Benchmark() {}
     void Init()
     {
         nxt.resize(MAXN + 5);
@@ -142,25 +41,17 @@ public:
 		}
 		for (int i = 0; i < mod; i++) head[i] = 0;
     }
-    std::pair<std::pair<double, double>,double> Run(uint32_t memory, int k_of_sketch, double query_w) 
-    {
+	std::pair<std::pair<double, double>, double> Run(double w, uint32_t memory) {
         Init();
-        uint32_t running_length = 20000000;
+		uint32_t run_length = 20000000;
+        double query_quantile = w;
+        double tottime = 0.00, tt;
+		assert(run_length <= length);
 
-        compare_kll<uint64_t>* KLL_sketch = new compare_kll<uint64_t>(memory,k_of_sketch,running_length);
-
-        CorrectDetector<uint64_t, uint64_t>* correct_detector = new CorrectDetector<uint64_t, uint64_t>(); 
-
-        clock_t begin,finish;
-        clock_t total=0;
-        double totaltime, tt;
-        double query_quantile = query_w;
-
+		GroundTruth<uint64_t, uint64_t> gt;
+        SketchPolymer<uint64_t>* sketchpolymer = new SketchPolymer<uint64_t>(memory);
         std::vector<std::pair<uint64_t, uint64_t> > ins; ins.clear();
-
-
-        for (int i = 0; i < running_length; ++i) 
-        {
+		for (int i = 0; i < run_length; ++i) {
             int g = dataset[i].id % mod;
             bool flag = 0;
             for (int j = head[g]; j; j = nxt[j])
@@ -169,12 +60,7 @@ public:
                 {
                     flag = 1;
                     id_map[j] ++;
-                    if (dataset[i].timestamp > last_time[j])
-                    {
-                        correct_detector->insert(dataset[i].id, dataset[i].timestamp - last_time[j]);
-
-                        ins.push_back(std::make_pair(dataset[i].id, dataset[i].timestamp - last_time[j]));
-                    }
+                    ins.push_back(std::make_pair(dataset[i].id, dataset[i].timestamp - last_time[j]));
                     last_time[j] = dataset[i].timestamp;
                     break;
                 }
@@ -187,19 +73,25 @@ public:
                 id_map[cnt] = 1;
                 last_time[cnt] = dataset[i].timestamp;
             }
+		}
 
-        }
-
-        tt = clock();
+        //std::cerr << cnt << std::endl;
 
         for (int i = 0; i < ins.size(); i++)
         {
-            KLL_sketch -> insert(ins[i].first, ins[i].second);
+            gt.insert(ins[i].first, ins[i].second);
         }
 
-        total = clock() - tt;
-        
-        double totaltime1 = (double)(total) / CLOCKS_PER_SEC;
+        gt.build();
+
+        tt = clock();
+        for (int i = 0; i < ins.size(); i++)
+        {
+            sketchpolymer -> insert(ins[i].first, 0, ins[i].second);
+        }
+        tottime = clock() - tt;
+
+        double totaltime1 = (double)(tottime) / CLOCKS_PER_SEC;
         double throughput1 = double((int)ins.size()) / totaltime1;
 
         std::vector<uint64_t> qrys, ans; qrys.clear(); ans.clear();
@@ -218,10 +110,9 @@ public:
 
         struct timeval t_start, t_end;
         gettimeofday( &t_start, NULL );
-        double rs = 0.00;
         for (int i = 0; i < num; i++)
         {
-            ans[i] = KLL_sketch -> query(qrys[i], query_quantile);
+            ans[i] = sketchpolymer -> query(qrys[i], query_quantile);
         }
         gettimeofday( &t_end, NULL );
 
@@ -230,7 +121,7 @@ public:
 
         for (int i = 0; i < num; i++) {
 
-            double predict_quantile_qs = correct_detector -> query(qrys[i], ans[i]);
+            double predict_quantile_qs = gt.query(qrys[i], ans[i]);
 
             //std::cout << tid[i] << " " << predict_quantile_qs << " " << id_map[i] << std::endl;
 
@@ -239,11 +130,12 @@ public:
         }
 
         return std::make_pair(std::make_pair(throughput1, throughput2), error_qs / num);
-    }
-//private:
-    std::string filename;
+	}
+
+private:
+	std::string filename;
     LoadResult load_result;
-    CAIDA_Tuple* dataset;
+    CAIDA_Tuple *dataset;
     uint64_t length;
     int cnt;
 	std::vector<int> head, nxt, id_map;
@@ -280,24 +172,17 @@ public:
 		}
 		for (int i = 0; i < mod; i++) head[i] = 0;
     }
-	std::pair<std::pair<double, double>, double> Run(uint32_t memory, int k_of_sketch, double query_w) 
-    {
+	std::pair<std::pair<double, double>, double> Run(double w, uint32_t memory) {
         Init();
-        uint32_t running_length = 20000000;
+		uint32_t run_length = 20000000;
+        double query_quantile = w;
+        double tottime = 0.00, tt;
+		assert(run_length <= length);
 
-        compare_kll<uint64_t>* KLL_sketch = new compare_kll<uint64_t>(memory,k_of_sketch,running_length);
-
-        CorrectDetector<uint64_t, uint64_t>* correct_detector = new CorrectDetector<uint64_t, uint64_t>(); 
-
-        clock_t begin,finish;
-        clock_t total=0;
-        double totaltime, tt;
-        double query_quantile = query_w;
-
+		GroundTruth<uint64_t, uint64_t> gt;
+        SketchPolymer<uint64_t>* sketchpolymer = new SketchPolymer<uint64_t>(memory);
         std::vector<std::pair<uint64_t, uint64_t> > ins; ins.clear();
-
-        for (int i = 0; i < running_length; ++i) 
-        {
+		for (int i = 0; i < run_length; ++i) {
             int g = dataset[i].id % mod;
             bool flag = 0;
             for (int j = head[g]; j; j = nxt[j])
@@ -306,12 +191,7 @@ public:
                 {
                     flag = 1;
                     id_map[j] ++;
-                    if (i > last_time[j])
-                    {
-                        correct_detector->insert(dataset[i].id, i - last_time[j]);
-
-                        ins.push_back(std::make_pair(dataset[i].id, i - last_time[j]));
-                    }
+                    ins.push_back(std::make_pair(dataset[i].id, i - last_time[j]));
                     last_time[j] = i;
                     break;
                 }
@@ -324,19 +204,23 @@ public:
                 id_map[cnt] = 1;
                 last_time[cnt] = i;
             }
-
-        }
-
-        tt = clock();
+		}
 
         for (int i = 0; i < ins.size(); i++)
         {
-            KLL_sketch -> insert(ins[i].first, ins[i].second);
+            gt.insert(ins[i].first, ins[i].second);
         }
 
-        total = clock() - tt;
-        
-        double totaltime1 = (double)(total) / CLOCKS_PER_SEC;
+        gt.build();
+
+        tt = clock();
+        for (int i = 0; i < ins.size(); i++)
+        {
+            sketchpolymer -> insert(ins[i].first, 0, ins[i].second);
+        }
+        tottime = clock() - tt;
+
+        double totaltime1 = (double)(tottime) / CLOCKS_PER_SEC;
         double throughput1 = double((int)ins.size()) / totaltime1;
 
         std::vector<uint64_t> qrys, ans; qrys.clear(); ans.clear();
@@ -355,10 +239,9 @@ public:
 
         struct timeval t_start, t_end;
         gettimeofday( &t_start, NULL );
-        double rs = 0.00;
         for (int i = 0; i < num; i++)
         {
-            ans[i] = KLL_sketch -> query(qrys[i], query_quantile);
+            ans[i] = sketchpolymer -> query(qrys[i], query_quantile);
         }
         gettimeofday( &t_end, NULL );
 
@@ -367,7 +250,7 @@ public:
 
         for (int i = 0; i < num; i++) {
 
-            double predict_quantile_qs = correct_detector -> query(qrys[i], ans[i]);
+            double predict_quantile_qs = gt.query(qrys[i], ans[i]);
 
             //std::cout << tid[i] << " " << predict_quantile_qs << " " << id_map[i] << std::endl;
 
@@ -389,6 +272,7 @@ private:
 	std::vector<uint64_t> tid; 
 };
 
+
 struct Seattle_Tuple {
     uint32_t id;
     uint32_t fetch_time;
@@ -404,6 +288,7 @@ std::string itos(int n)
     }
     return res;
 }
+
 
 class Seattle_Benchmark {
 public:
@@ -433,6 +318,10 @@ public:
                 }
             }
         }
+        /*for (int i = 0; i < length; i++)
+        {
+            std::cout << dataset[i].id << " " << dataset[i].fetch_time << std::endl;
+        }*/
 	}
 	~Seattle_Benchmark()
     {
@@ -453,24 +342,17 @@ public:
 		}
 		for (int i = 0; i < mod; i++) head[i] = 0;
     }
-	std::pair<std::pair<double, double>, double> Run(uint32_t memory, int k_of_sketch, double query_w) 
-    {
+	std::pair<std::pair<double, double>, double> Run(double w, uint32_t memory) {
         Init();
-        uint32_t running_length = length;
+		uint32_t run_length = length;
+        double query_quantile = w;
+        double tottime = 0.00, tt;
+		assert(run_length <= length);
 
-        compare_kll<uint64_t>* KLL_sketch = new compare_kll<uint64_t>(memory,k_of_sketch,running_length);
-
-        CorrectDetector<uint64_t, uint64_t>* correct_detector = new CorrectDetector<uint64_t, uint64_t>(); 
-
-        clock_t begin,finish;
-        clock_t total=0;
-        double totaltime, tt;
-        double query_quantile = query_w;
-
+		GroundTruth<uint64_t, uint64_t> gt;
+		SketchPolymer<uint64_t>* sketchpolymer = new SketchPolymer<uint64_t>(memory);
         std::vector<std::pair<uint64_t, uint64_t> > ins; ins.clear();
-
-        for (int i = 0; i < running_length; ++i) 
-        {
+		for (int i = 0; i < run_length; ++i) {
             int g = dataset[i].id % mod;
             bool flag = 0;
             for (int j = head[g]; j; j = nxt[j])
@@ -479,9 +361,8 @@ public:
                 {
                     flag = 1;
                     id_map[j] ++;
-                    correct_detector->insert(dataset[i].id, dataset[i].fetch_time);
-
                     ins.push_back(std::make_pair(dataset[i].id, dataset[i].fetch_time));
+                    
                     break;
                 }
             }
@@ -491,24 +372,27 @@ public:
                 tid[cnt] = dataset[i].id; nxt[cnt] = head[g];
                 head[g] = cnt;
                 id_map[cnt] = 1;
-                last_time[cnt] = i;
-                correct_detector->insert(dataset[i].id, dataset[i].fetch_time);
 
                 ins.push_back(std::make_pair(dataset[i].id, dataset[i].fetch_time));
             }
-
-        }
-
-        tt = clock();
+		}
 
         for (int i = 0; i < ins.size(); i++)
         {
-            KLL_sketch -> insert(ins[i].first, ins[i].second);
+            gt.insert(ins[i].first, ins[i].second);
         }
 
-        total = clock() - tt;
-        
-        double totaltime1 = (double)(total) / CLOCKS_PER_SEC;
+        gt.build();
+
+        tt = clock();
+        for (int i = 0; i < ins.size(); i++)
+        {
+            sketchpolymer -> insert(ins[i].first, 0, ins[i].second);
+        }
+        tottime = clock() - tt;
+
+
+       double totaltime1 = (double)(tottime) / CLOCKS_PER_SEC;
         double throughput1 = double((int)ins.size()) / totaltime1;
 
         std::vector<uint64_t> qrys, ans; qrys.clear(); ans.clear();
@@ -527,10 +411,9 @@ public:
 
         struct timeval t_start, t_end;
         gettimeofday( &t_start, NULL );
-        double rs = 0.00;
         for (int i = 0; i < num; i++)
         {
-            ans[i] = KLL_sketch -> query(qrys[i], query_quantile);
+            ans[i] = sketchpolymer -> query(qrys[i], query_quantile);
         }
         gettimeofday( &t_end, NULL );
 
@@ -539,7 +422,7 @@ public:
 
         for (int i = 0; i < num; i++) {
 
-            double predict_quantile_qs = correct_detector -> query(qrys[i], ans[i]);
+            double predict_quantile_qs = gt.query(qrys[i], ans[i]);
 
             //std::cout << tid[i] << " " << predict_quantile_qs << " " << id_map[i] << std::endl;
 
@@ -619,27 +502,20 @@ public:
 		}
 		for (int i = 0; i < mod; i++) head[i] = 0;
     }
-	std::pair<std::pair<double, double>,double> Run(uint32_t memory, int k_of_sketch, double query_w) 
-    {
+	std::pair<std::pair<double, double>, double> Run(double w, uint32_t memory) {
         Init();
-        uint32_t running_length = 20000000;
+		uint32_t run_length = 20000000;
+        double query_quantile = w;
+        double tottime = 0.00, tt;
+		assert(run_length <= length);
 
-        compare_kll<uint64_t>* KLL_sketch = new compare_kll<uint64_t>(memory,k_of_sketch,running_length);
-
-        CorrectDetector<uint64_t, uint64_t>* correct_detector = new CorrectDetector<uint64_t, uint64_t>(); 
-
-        clock_t begin,finish;
-        clock_t total=0;
-        double totaltime, tt;
-        double query_quantile = query_w;
-
+		GroundTruth<uint64_t, uint64_t> gt;
+		SketchPolymer<uint64_t>* sketchpolymer = new SketchPolymer<uint64_t>(memory);
         std::vector<std::pair<uint64_t, uint64_t> > ins; ins.clear();
-
-
-        for (int i = 0; i < running_length; ++i) 
-        {
+		for (int i = 0; i < run_length; ++i) {
             uint64_t id = dataset[i].id.get_hash(MOD);
             int g = id % mod;
+            //std::cout << g << std::endl;
             bool flag = 0;
             for (int j = head[g]; j; j = nxt[j])
             {
@@ -647,12 +523,7 @@ public:
                 {
                     flag = 1;
                     id_map[j] ++;
-                    if (dataset[i].timestamp > last_time[j])
-                    {
-                        correct_detector->insert(id, dataset[i].timestamp - last_time[j]);
-
-                        ins.push_back(std::make_pair(id, dataset[i].timestamp - last_time[j]));
-                    }
+                    ins.push_back(std::make_pair(id, dataset[i].timestamp - last_time[j]));
                     last_time[j] = dataset[i].timestamp;
                     break;
                 }
@@ -665,19 +536,23 @@ public:
                 id_map[cnt] = 1;
                 last_time[cnt] = dataset[i].timestamp;
             }
-
-        }
-
-        tt = clock();
+		}
 
         for (int i = 0; i < ins.size(); i++)
         {
-            KLL_sketch -> insert(ins[i].first, ins[i].second);
+            gt.insert(ins[i].first, ins[i].second);
         }
 
-        total = clock() - tt;
-        
-        double totaltime1 = (double)(total) / CLOCKS_PER_SEC;
+        gt.build();
+
+        tt = clock();
+        for (int i = 0; i < ins.size(); i++)
+        {
+            sketchpolymer -> insert(ins[i].first, 0, ins[i].second);
+        }
+        tottime = clock() - tt;
+
+        double totaltime1 = (double)(tottime) / CLOCKS_PER_SEC;
         double throughput1 = double((int)ins.size()) / totaltime1;
 
         std::vector<uint64_t> qrys, ans; qrys.clear(); ans.clear();
@@ -696,10 +571,9 @@ public:
 
         struct timeval t_start, t_end;
         gettimeofday( &t_start, NULL );
-        double rs = 0.00;
         for (int i = 0; i < num; i++)
         {
-            ans[i] = KLL_sketch -> query(qrys[i], query_quantile);
+            ans[i] = sketchpolymer -> query(qrys[i], query_quantile);
         }
         gettimeofday( &t_end, NULL );
 
@@ -708,7 +582,7 @@ public:
 
         for (int i = 0; i < num; i++) {
 
-            double predict_quantile_qs = correct_detector -> query(qrys[i], ans[i]);
+            double predict_quantile_qs = gt.query(qrys[i], ans[i]);
 
             //std::cout << tid[i] << " " << predict_quantile_qs << " " << id_map[i] << std::endl;
 
@@ -717,7 +591,7 @@ public:
         }
 
         return std::make_pair(std::make_pair(throughput1, throughput2), error_qs / num);
-    }
+	}
 
 private:
 	std::string filename;
@@ -729,5 +603,3 @@ private:
     std::vector<uint64_t> last_time;
 	std::vector<uint64_t> tid; 
 };
-
-#endif

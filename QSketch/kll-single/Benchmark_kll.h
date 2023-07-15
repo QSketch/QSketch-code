@@ -2,12 +2,25 @@
 #define _BENCHMARK_H_
 
 #include <bits/stdc++.h>
+#include <linux/types.h>
 #include <hash.h>
 #include <Mmap.h>
 #include "CorrectDetector.h"
 #include "kll_sketch.hpp"
 #include "Param.h"
 #include<time.h>
+
+__u64 rdtsc()
+{
+        __u32 lo,hi;
+
+
+        __asm__ __volatile__
+        (
+         "rdtsc":"=a"(lo),"=d"(hi)
+        );
+        return (__u64)hi<<32|lo;
+}
 
 
 template<typename ID_TYPE>
@@ -141,7 +154,7 @@ public:
 		}
 		for (int i = 0; i < mod; i++) head[i] = 0;
     }
-    std::pair<double,double> Run(uint32_t memory, int k_of_sketch, double query_w) 
+    std::pair<std::pair<double, double>, double> Run(uint32_t memory, int k_of_sketch, double query_w) 
     {
         Init();
         uint32_t running_length = 20000000;
@@ -196,16 +209,29 @@ public:
 
         total = clock() - tt;
 
-        totaltime=(double)(total)/CLOCKS_PER_SEC;
-        double throughput = double(running_length) / totaltime;
-        //std::cout <<"throughput: "<<std::fixed<<std::setprecision(4)<< throughput <<" item/s"<< std::endl;
+        double totaltime1 = (double)(total) / CLOCKS_PER_SEC;
+        double throughput1 = double((int)ins.size()) / totaltime1;
 
-        double log_error = 0;
-        uint64_t predict = KLL_sketch->query(1, query_w);
-        double predict_quantile = correct_detector->query(1, predict);
-        log_error += fabs( predict_quantile - query_w );
+		//std::cout << totaltime << std::endl;
 
-        return std::make_pair(throughput, log_error);
+		double error_qs = 0;
+
+        __u64 begins = rdtsc();
+        uint64_t predict_qs;
+        for (int t = 1; t <= 1000; t++)
+        {
+            predict_qs = KLL_sketch -> query(1, query_w);
+        }
+        __u64 ends = rdtsc();
+        double throughput2 = 1000000000.00 / (double)(ends - begins);
+        double predict_quantile_qs = correct_detector -> query(1, predict_qs);
+
+        //std::cout << predict_quantile_qs << std::endl;
+
+        error_qs += fabs(predict_quantile_qs - query_w);
+
+
+        return std::make_pair(std::make_pair(throughput1, throughput2), error_qs);
     }
 //private:
     std::string filename;
@@ -236,7 +262,7 @@ public:
         }
 	}
 	~synthetic_Benchmark() {}
-    std::pair<double,double> Run(uint32_t memory, int k_of_sketch, double query_w) {
+    std::pair<std::pair<double, double>, double> Run(uint32_t memory, int k_of_sketch, double query_w) {
         uint32_t running_length = 20000000;
 
         compare_kll<uint64_t>* KLL_sketch = new compare_kll<uint64_t>(memory,k_of_sketch,running_length);
@@ -264,16 +290,29 @@ public:
 
         total = clock() - tt;
 
-        totaltime=(double)(total)/CLOCKS_PER_SEC;
-        double throughput = double(running_length) / totaltime;
-        //std::cout <<"throughput: "<<std::fixed<<std::setprecision(4)<< throughput <<" item/s"<< std::endl;
+        double totaltime1 = (double)(total) / CLOCKS_PER_SEC;
+        double throughput1 = double((int)ins.size()) / totaltime1;
 
-        double log_error = 0;
-        uint64_t predict = KLL_sketch->query(1, query_w);
-        double predict_quantile = correct_detector->query(1, predict);
-        log_error += fabs( predict_quantile - query_w );
+		//std::cout << totaltime << std::endl;
 
-        return std::make_pair(throughput, log_error);
+		double error_qs = 0;
+
+        __u64 begins = rdtsc();
+        uint64_t predict_qs;
+        for (int t = 1; t <= 1000; t++)
+        {
+            predict_qs = KLL_sketch -> query(1, query_w);
+        }
+        __u64 ends = rdtsc();
+        double throughput2 = 1000000000.00 / (double)(ends - begins);
+        double predict_quantile_qs = correct_detector -> query(1, predict_qs);
+
+        //std::cout << predict_quantile_qs << std::endl;
+
+        error_qs += fabs(predict_quantile_qs - query_w);
+
+
+        return std::make_pair(std::make_pair(throughput1, throughput2), error_qs);
 	}
 
 private:

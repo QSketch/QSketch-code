@@ -16,7 +16,7 @@ int main(int argc, char** argv)
 	string path3 = "../Seattle/SeattleData_";
     string path4 = "../tap.dat";
 
-    std::pair<double, double> res[333], cur;
+    std::pair<std::pair<double, double>, double> res[333], cur;
     int cnt = 0;
 
     CAIDA_Benchmark benchmark(path1);
@@ -32,7 +32,14 @@ int main(int argc, char** argv)
 
     for (int i = 1; i <= cnt; i++) 
     {
-        std::cout << std::fixed<<std::setprecision(4) << res[i].first << "	";
+        std::cout << std::fixed<<std::setprecision(4) << res[i].first.first << "	";
+    }
+
+    std::cout << std::endl;
+
+    for (int i = 1; i <= cnt; i++) 
+    {
+        std::cout << std::fixed<<std::setprecision(4) << res[i].first.second << "	";
     }
 
     std::cout << std::endl;
@@ -49,7 +56,7 @@ int main(int argc, char** argv)
     zipf_Benchmark benchmark2(path2);
     for (double w = 0.10; w < 0.95; w += 0.10)
     {
-        for (int memory = 500; memory <= 1500; memory += 200)
+        for (int memory = 30; memory <= 80; memory += 10)
         {
 			++cnt;
             cur = benchmark2.Run(memory, 0.05, w);
@@ -59,7 +66,14 @@ int main(int argc, char** argv)
 
     for (int i = 1; i <= cnt; i++) 
     {
-        std::cout << std::fixed<<std::setprecision(4) << res[i].first << "	";
+        std::cout << std::fixed<<std::setprecision(4) << res[i].first.first << "	";
+    }
+
+    std::cout << std::endl;
+
+    for (int i = 1; i <= cnt; i++) 
+    {
+        std::cout << std::fixed<<std::setprecision(4) << res[i].first.second << "	";
     }
 
     std::cout << std::endl;
@@ -77,7 +91,7 @@ int main(int argc, char** argv)
     Seattle_Benchmark benchmark3(path3);
     for (double w = 0.10; w < 0.95; w += 0.10)
     {
-        for (int memory = 500; memory <= 1500; memory += 200)
+        for (int memory = 50; memory <= 100; memory += 10)
         {
 			++cnt;
             cur = benchmark3.Run(memory, 0.05, w);
@@ -87,7 +101,14 @@ int main(int argc, char** argv)
 
     for (int i = 1; i <= cnt; i++) 
     {
-        std::cout << std::fixed<<std::setprecision(4) << res[i].first << "	";
+        std::cout << std::fixed<<std::setprecision(4) << res[i].first.first << "	";
+    }
+
+    std::cout << std::endl;
+
+    for (int i = 1; i <= cnt; i++) 
+    {
+        std::cout << std::fixed<<std::setprecision(4) << res[i].first.second << "	";
     }
 
     std::cout << std::endl;
@@ -114,7 +135,14 @@ int main(int argc, char** argv)
 
     for (int i = 1; i <= cnt; i++) 
     {
-        std::cout << std::fixed<<std::setprecision(4) << res[i].first << "	";
+        std::cout << std::fixed<<std::setprecision(4) << res[i].first.first << "	";
+    }
+
+    std::cout << std::endl;
+
+    for (int i = 1; i <= cnt; i++) 
+    {
+        std::cout << std::fixed<<std::setprecision(4) << res[i].first.second << "	";
     }
 
     std::cout << std::endl;

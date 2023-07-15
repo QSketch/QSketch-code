@@ -1,4 +1,5 @@
 #include <bits/stdc++.h>
+#include <sys/time.h>
 #include "tdigestperflow.h"
 #include "GroundTruth.h"
 #include "hash.h"
@@ -39,7 +40,7 @@ public:
 		}
 		for (int i = 0; i < mod; i++) head[i] = 0;
     }
-	std::pair<double, double> Run(double w, uint32_t memory, double compression) {
+	std::pair<std::pair<double, double>, double> Run(double w, uint32_t memory, double compression) {
         Init();
 		uint32_t run_length = 20000000;
         double query_quantile = w;
@@ -88,26 +89,45 @@ public:
 
         tottime = clock() - tt;
 
-        double totaltime = (double)(tottime) / CLOCKS_PER_SEC;
-        double throughput = double(run_length) / totaltime;
+        double totaltime1 = (double)(tottime) / CLOCKS_PER_SEC;
+        double throughput1 = double((int)ins.size()) / totaltime1;
 
-		//std::cout << "insertion ends\n";
+        std::vector<uint64_t> qrys, ans; qrys.clear(); ans.clear();
 
-		double error_td = 0;
+		double error_qs = 0;
         int num = 0;
         for (int i = 1; i <= cnt; i++) {
             if (id_map[i] < 5000)
                 continue;
             num++;
 
-
-            uint64_t predict_td = td.query(tid[i], query_quantile);
-            double predict_quantile_td = gt.query(tid[i], predict_td);
-            error_td += abs(predict_quantile_td - query_quantile);
-            //std::cout << predict_quantile_td << "\n";
+            qrys.push_back(tid[i]);
         }
 
-        return std::make_pair(throughput, error_td / num);
+        ans.resize(num);
+
+        struct timeval t_start, t_end;
+        gettimeofday( &t_start, NULL );
+        for (int i = 0; i < num; i++)
+        {
+            ans[i] = td.query(qrys[i], query_quantile);
+        }
+        gettimeofday( &t_end, NULL );
+
+        double totaltime2 = (double)(t_end.tv_sec - t_start.tv_sec) + (double)(t_end.tv_usec - t_start.tv_usec) / 1000000.00;
+        double throughput2 = double(num) / totaltime2;
+
+        for (int i = 0; i < num; i++) {
+
+            double predict_quantile_qs = gt.query(qrys[i], ans[i]);
+
+            //std::cout << tid[i] << " " << predict_quantile_qs << " " << id_map[i] << std::endl;
+
+            error_qs += fabs(predict_quantile_qs - query_quantile);
+            //std::cout << predict_quantile_qs << "\n";
+        }
+
+        return std::make_pair(std::make_pair(throughput1, throughput2), error_qs / num);
 	}
 
 private:
@@ -150,7 +170,7 @@ public:
 		}
 		for (int i = 0; i < mod; i++) head[i] = 0;
     }
-	std::pair<double, double> Run(double w, uint32_t memory, double compression) {
+	std::pair<std::pair<double, double>, double> Run(double w, uint32_t memory, double compression) {
         Init();
 		uint32_t run_length = 20000000;
         double query_quantile = w;
@@ -197,27 +217,45 @@ public:
 
         tottime = clock() - tt;
 
-        double totaltime = (double)(tottime) / CLOCKS_PER_SEC;
-        double throughput = double(run_length) / totaltime;
+        double totaltime1 = (double)(tottime) / CLOCKS_PER_SEC;
+        double throughput1 = double((int)ins.size()) / totaltime1;
 
-		//std::cout << "insertion ends\n";
+        std::vector<uint64_t> qrys, ans; qrys.clear(); ans.clear();
 
-		double error_td = 0;
+		double error_qs = 0;
         int num = 0;
         for (int i = 1; i <= cnt; i++) {
             if (id_map[i] < 5000)
                 continue;
             num++;
-            
 
-            uint64_t predict_td = td.query(tid[i], query_quantile);
-            double predict_quantile_td = gt.query(tid[i], predict_td);
-            error_td += abs(predict_quantile_td - query_quantile);
-            //std::cout << predict_quantile_td << "\n";
+            qrys.push_back(tid[i]);
         }
-        //std::cout << "Estimate: " << num << "\n";
-		//std::cout << "Average Error (TD): " << error_td / num << "\n";
-        return std::make_pair(throughput, error_td / num);
+
+        ans.resize(num);
+
+        struct timeval t_start, t_end;
+        gettimeofday( &t_start, NULL );
+        for (int i = 0; i < num; i++)
+        {
+            ans[i] = td.query(qrys[i], query_quantile);
+        }
+        gettimeofday( &t_end, NULL );
+
+        double totaltime2 = (double)(t_end.tv_sec - t_start.tv_sec) + (double)(t_end.tv_usec - t_start.tv_usec) / 1000000.00;
+        double throughput2 = double(num) / totaltime2;
+
+        for (int i = 0; i < num; i++) {
+
+            double predict_quantile_qs = gt.query(qrys[i], ans[i]);
+
+            //std::cout << tid[i] << " " << predict_quantile_qs << " " << id_map[i] << std::endl;
+
+            error_qs += fabs(predict_quantile_qs - query_quantile);
+            //std::cout << predict_quantile_qs << "\n";
+        }
+
+        return std::make_pair(std::make_pair(throughput1, throughput2), error_qs / num);
 	}
 
 private:
@@ -296,7 +334,7 @@ public:
 		}
 		for (int i = 0; i < mod; i++) head[i] = 0;
     }
-	std::pair<double, double> Run(double w, uint32_t memory, double compression) {
+	std::pair<std::pair<double, double>, double> Run(double w, uint32_t memory, double compression) {
         Init();
 		uint32_t run_length = length;
         double query_quantile = w;
@@ -340,27 +378,45 @@ public:
 
         tottime = clock() - tt;
 
-        double totaltime = (double)(tottime) / CLOCKS_PER_SEC;
-        double throughput = double(run_length) / totaltime;
+       double totaltime1 = (double)(tottime) / CLOCKS_PER_SEC;
+        double throughput1 = double((int)ins.size()) / totaltime1;
 
-		//std::cout << "insertion ends\n";
+        std::vector<uint64_t> qrys, ans; qrys.clear(); ans.clear();
 
-		double error_td = 0;
+		double error_qs = 0;
         int num = 0;
         for (int i = 1; i <= cnt; i++) {
             if (id_map[i] < 5000)
                 continue;
             num++;
-            
 
-            uint64_t predict_td = td.query(tid[i], query_quantile);
-            double predict_quantile_td = gt.query(tid[i], predict_td);
-            error_td += abs(predict_quantile_td - query_quantile);
-            //std::cout << predict_quantile_td << "\n";
+            qrys.push_back(tid[i]);
         }
-        //std::cout << "Estimate: " << num << "\n";
-		//std::cout << "Average Error (TD): " << error_td / num << "\n";
-        return std::make_pair(throughput, error_td / num);
+
+        ans.resize(num);
+
+        struct timeval t_start, t_end;
+        gettimeofday( &t_start, NULL );
+        for (int i = 0; i < num; i++)
+        {
+            ans[i] = td.query(qrys[i], query_quantile);
+        }
+        gettimeofday( &t_end, NULL );
+
+        double totaltime2 = (double)(t_end.tv_sec - t_start.tv_sec) + (double)(t_end.tv_usec - t_start.tv_usec) / 1000000.00;
+        double throughput2 = double(num) / totaltime2;
+
+        for (int i = 0; i < num; i++) {
+
+            double predict_quantile_qs = gt.query(qrys[i], ans[i]);
+
+            //std::cout << tid[i] << " " << predict_quantile_qs << " " << id_map[i] << std::endl;
+
+            error_qs += fabs(predict_quantile_qs - query_quantile);
+            //std::cout << predict_quantile_qs << "\n";
+        }
+
+        return std::make_pair(std::make_pair(throughput1, throughput2), error_qs / num);
 	}
 
 private:
@@ -432,7 +488,7 @@ public:
 		}
 		for (int i = 0; i < mod; i++) head[i] = 0;
     }
-	std::pair<double, double> Run(double w, uint32_t memory, double compression) {
+	std::pair<std::pair<double, double>, double> Run(double w, uint32_t memory, double compression) {
         Init();
 		uint32_t run_length = 20000000;
         double query_quantile = w;
@@ -482,26 +538,45 @@ public:
 
         tottime = clock() - tt;
 
-        double totaltime = (double)(tottime) / CLOCKS_PER_SEC;
-        double throughput = double((int)ins.size()) / totaltime;
+        double totaltime1 = (double)(tottime) / CLOCKS_PER_SEC;
+        double throughput1 = double((int)ins.size()) / totaltime1;
 
-		//std::cout << "insertion ends\n";
+        std::vector<uint64_t> qrys, ans; qrys.clear(); ans.clear();
 
-		double error_td = 0;
+		double error_qs = 0;
         int num = 0;
         for (int i = 1; i <= cnt; i++) {
             if (id_map[i] < 5000)
                 continue;
             num++;
 
-
-            uint64_t predict_td = td.query(tid[i], query_quantile);
-            double predict_quantile_td = gt.query(tid[i], predict_td);
-            error_td += abs(predict_quantile_td - query_quantile);
-            //std::cout << predict_quantile_td << "\n";
+            qrys.push_back(tid[i]);
         }
 
-        return std::make_pair(throughput, error_td / num);
+        ans.resize(num);
+
+        struct timeval t_start, t_end;
+        gettimeofday( &t_start, NULL );
+        for (int i = 0; i < num; i++)
+        {
+            ans[i] = td.query(qrys[i], query_quantile);
+        }
+        gettimeofday( &t_end, NULL );
+
+        double totaltime2 = (double)(t_end.tv_sec - t_start.tv_sec) + (double)(t_end.tv_usec - t_start.tv_usec) / 1000000.00;
+        double throughput2 = double(num) / totaltime2;
+
+        for (int i = 0; i < num; i++) {
+
+            double predict_quantile_qs = gt.query(qrys[i], ans[i]);
+
+            //std::cout << tid[i] << " " << predict_quantile_qs << " " << id_map[i] << std::endl;
+
+            error_qs += fabs(predict_quantile_qs - query_quantile);
+            //std::cout << predict_quantile_qs << "\n";
+        }
+
+        return std::make_pair(std::make_pair(throughput1, throughput2), error_qs / num);
 	}
 
 private:

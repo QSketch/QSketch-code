@@ -13,7 +13,7 @@ int main(int argc, const char** argv) {
 	string path3 = "../CAIDA2016/formatted03.dat";
     string path4 = "../1.dat";
 
-	std::pair<double, double> res[33], cur;
+	std::pair<std::pair<double, double>, double> res[33], cur;
     int cnt = 0;
 
     CAIDABenchmark benchmark(path1);
@@ -26,7 +26,14 @@ int main(int argc, const char** argv) {
 
     for (int i = 1; i <= cnt; i++) 
     {
-        std::cout << std::fixed<<std::setprecision(4) << res[i].first << "	";
+        std::cout << std::fixed<<std::setprecision(4) << res[i].first.first << "	";
+    }
+
+    std::cout << std::endl;
+
+    for (int i = 1; i <= cnt; i++) 
+    {
+        std::cout << std::fixed<<std::setprecision(4) << res[i].first.second << "	";
     }
 
     std::cout << std::endl;
@@ -50,7 +57,14 @@ int main(int argc, const char** argv) {
 
     for (int i = 1; i <= cnt; i++) 
     {
-        std::cout << std::fixed<<std::setprecision(4) << res[i].first << "	";
+        std::cout << std::fixed<<std::setprecision(4) << res[i].first.first << "	";
+    }
+
+    std::cout << std::endl;
+
+    for (int i = 1; i <= cnt; i++) 
+    {
+        std::cout << std::fixed<<std::setprecision(4) << res[i].first.second << "	";
     }
 
     std::cout << std::endl;
