@@ -4,7 +4,13 @@
 
 ## Getting Started
 
-To compile the code:
+To run the experiment of an algorithm, first go to the corresponding folder, for example, if you want to test per-key Qsketch, 
+
+```
+cd Qsketch-main
+```
+
+Then, to compile the code:
 
 ```
 make

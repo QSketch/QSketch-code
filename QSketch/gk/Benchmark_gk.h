@@ -4,6 +4,7 @@
 #include <bits/stdc++.h>
 #include <hash.h>
 #include <Mmap.h>
+#include <sys/time.h>
 #include "CorrectDetector.h"
 #include "gk.hpp"
 #include "Param.h"
@@ -129,7 +130,7 @@ public:
 		}
 		for (int i = 0; i < mod; i++) head[i] = 0;
     }
-    std::pair<double, double> Run(uint32_t memory, double eps, double query_w) 
+    std::pair<std::pair<double, double>, double> Run(uint32_t memory, double eps, double query_w) 
     {
         Init();
         uint32_t running_length = 20000000;
@@ -141,6 +142,7 @@ public:
         clock_t begin,finish;
         clock_t total=0;
         double totaltime, tt;
+        double query_quantile = query_w;
 
         std::vector<std::pair<uint64_t, uint64_t> > ins; ins.clear();
 
@@ -184,30 +186,46 @@ public:
 
         total = clock() - tt;
         
-        totaltime=(double)(total)/CLOCKS_PER_SEC;
-        double throughput = double(running_length) / totaltime;
-        //std::cout <<"throughput: "<<std::fixed<<std::setprecision(4)<< throughput <<" item/s"<< std::endl;
+        double totaltime1 = (double)(total) / CLOCKS_PER_SEC;
+        double throughput1 = double((int)ins.size()) / totaltime1;
 
-        double error = 0;
+        std::vector<uint64_t> qrys, ans; qrys.clear(); ans.clear();
+
+		double error_qs = 0;
         int num = 0;
-        for (int i = 1; i <= cnt; i++) 
-        {
+        for (int i = 1; i <= cnt; i++) {
             if (id_map[i] < 5000)
                 continue;
             num++;
-            
-            uint64_t predict = gk_sketch->query(tid[i], query_w);
-            double predict_quantile = correct_detector->query(tid[i], predict);
-            error += fabs( predict_quantile - query_w );
 
+            qrys.push_back(tid[i]);
         }
-        //std::cout << "Average Error: " << error / num << "\n";
 
-        //gk_sketch->print_status();
+        ans.resize(num);
 
-        //std::cout << "\n";
+        struct timeval t_start, t_end;
+        gettimeofday( &t_start, NULL );
+        double rs = 0.00;
+        for (int i = 0; i < num; i++)
+        {
+            ans[i] = gk_sketch -> query(qrys[i], query_quantile);
+        }
+        gettimeofday( &t_end, NULL );
 
-        return std::make_pair(throughput, error / num);
+        double totaltime2 = (double)(t_end.tv_sec - t_start.tv_sec) + (double)(t_end.tv_usec - t_start.tv_usec) / 1000000.00;
+        double throughput2 = double(num) / totaltime2;
+
+        for (int i = 0; i < num; i++) {
+
+            double predict_quantile_qs = correct_detector -> query(qrys[i], ans[i]);
+
+            //std::cout << tid[i] << " " << predict_quantile_qs << " " << id_map[i] << std::endl;
+
+            error_qs += fabs(predict_quantile_qs - query_quantile);
+            //std::cout << predict_quantile_qs << "\n";
+        }
+
+        return std::make_pair(std::make_pair(throughput1, throughput2), error_qs / num);
     }
 //private:
     std::string filename;
@@ -249,7 +267,7 @@ public:
 		}
 		for (int i = 0; i < mod; i++) head[i] = 0;
     }
-	std::pair<double, double> Run(uint32_t memory, double eps, double query_w) 
+	std::pair<std::pair<double, double>, double> Run(uint32_t memory, double eps, double query_w) 
     {
         Init();
         uint32_t running_length = 20000000;
@@ -258,6 +276,7 @@ public:
 
         CorrectDetector<uint64_t, uint64_t>* correct_detector = new CorrectDetector<uint64_t, uint64_t>(); 
 
+        double query_quantile = query_w;
         clock_t begin,finish;
         clock_t total=0;
         double totaltime, tt;
@@ -304,28 +323,46 @@ public:
 
         total = clock() - tt;
         
-        totaltime=(double)(total)/CLOCKS_PER_SEC;
-        double throughput = double(running_length) / totaltime;
-        //std::cout <<"throughput: "<<std::fixed<<std::setprecision(4)<< throughput <<" item/s"<< std::endl;
+        double totaltime1 = (double)(total) / CLOCKS_PER_SEC;
+        double throughput1 = double((int)ins.size()) / totaltime1;
 
-        double error = 0;
+        std::vector<uint64_t> qrys, ans; qrys.clear(); ans.clear();
+
+		double error_qs = 0;
         int num = 0;
-
-        for (int i = 1; i <= cnt; i++) 
-        {
+        for (int i = 1; i <= cnt; i++) {
             if (id_map[i] < 5000)
                 continue;
             num++;
-            
-            uint64_t predict = gk_sketch->query(tid[i], query_w);
-            double predict_quantile = correct_detector->query(tid[i], predict);
-            error += fabs( predict_quantile - query_w );
 
+            qrys.push_back(tid[i]);
         }
 
-        //gk_sketch->print_status();
+        ans.resize(num);
 
-        return std::make_pair(throughput, error / num);
+        struct timeval t_start, t_end;
+        gettimeofday( &t_start, NULL );
+        double rs = 0.00;
+        for (int i = 0; i < num; i++)
+        {
+            ans[i] = gk_sketch -> query(qrys[i], query_quantile);
+        }
+        gettimeofday( &t_end, NULL );
+
+        double totaltime2 = (double)(t_end.tv_sec - t_start.tv_sec) + (double)(t_end.tv_usec - t_start.tv_usec) / 1000000.00;
+        double throughput2 = double(num) / totaltime2;
+
+        for (int i = 0; i < num; i++) {
+
+            double predict_quantile_qs = correct_detector -> query(qrys[i], ans[i]);
+
+            //std::cout << tid[i] << " " << predict_quantile_qs << " " << id_map[i] << std::endl;
+
+            error_qs += fabs(predict_quantile_qs - query_quantile);
+            //std::cout << predict_quantile_qs << "\n";
+        }
+
+        return std::make_pair(std::make_pair(throughput1, throughput2), error_qs / num);
     }
 //private:
     std::string filename;
@@ -403,7 +440,7 @@ public:
 		}
 		for (int i = 0; i < mod; i++) head[i] = 0;
     }
-	std::pair<double, double> Run(uint32_t memory, double eps, double query_w) 
+	std::pair<std::pair<double, double>, double> Run(uint32_t memory, double eps, double query_w) 
     {
         Init();
         uint32_t running_length = length;
@@ -412,6 +449,7 @@ public:
 
         CorrectDetector<uint64_t, uint64_t>* correct_detector = new CorrectDetector<uint64_t, uint64_t>(); 
 
+        double query_quantile = query_w;
         clock_t begin,finish;
         clock_t total=0;
         double totaltime, tt;
@@ -455,28 +493,46 @@ public:
 
         total = clock() - tt;
         
-        totaltime=(double)(total)/CLOCKS_PER_SEC;
-        double throughput = double(running_length) / totaltime;
-        //std::cout <<"throughput: "<<std::fixed<<std::setprecision(4)<< throughput <<" item/s"<< std::endl;
+        double totaltime1 = (double)(total) / CLOCKS_PER_SEC;
+        double throughput1 = double((int)ins.size()) / totaltime1;
 
-        double error = 0;
+        std::vector<uint64_t> qrys, ans; qrys.clear(); ans.clear();
+
+		double error_qs = 0;
         int num = 0;
-
-        for (int i = 1; i <= cnt; i++) 
-        {
+        for (int i = 1; i <= cnt; i++) {
             if (id_map[i] < 5000)
                 continue;
             num++;
-            
-            uint64_t predict = gk_sketch->query(tid[i], query_w);
-            double predict_quantile = correct_detector->query(tid[i], predict);
-            error += fabs( predict_quantile - query_w );
 
+            qrys.push_back(tid[i]);
         }
 
-        //gk_sketch->print_status();
+        ans.resize(num);
 
-        return std::make_pair(throughput, error / num);
+        struct timeval t_start, t_end;
+        gettimeofday( &t_start, NULL );
+        double rs = 0.00;
+        for (int i = 0; i < num; i++)
+        {
+            ans[i] = gk_sketch -> query(qrys[i], query_quantile);
+        }
+        gettimeofday( &t_end, NULL );
+
+        double totaltime2 = (double)(t_end.tv_sec - t_start.tv_sec) + (double)(t_end.tv_usec - t_start.tv_usec) / 1000000.00;
+        double throughput2 = double(num) / totaltime2;
+
+        for (int i = 0; i < num; i++) {
+
+            double predict_quantile_qs = correct_detector -> query(qrys[i], ans[i]);
+
+            //std::cout << tid[i] << " " << predict_quantile_qs << " " << id_map[i] << std::endl;
+
+            error_qs += fabs(predict_quantile_qs - query_quantile);
+            //std::cout << predict_quantile_qs << "\n";
+        }
+
+        return std::make_pair(std::make_pair(throughput1, throughput2), error_qs / num);
 	}
 
 private:
@@ -548,7 +604,7 @@ public:
 		}
 		for (int i = 0; i < mod; i++) head[i] = 0;
     }
-	std::pair<double, double> Run(uint32_t memory, double eps, double query_w) 
+	std::pair<std::pair<double, double>, double> Run(uint32_t memory, double eps, double query_w) 
     {
         Init();
         uint32_t running_length = 20000000;
@@ -557,6 +613,7 @@ public:
 
         CorrectDetector<uint64_t, uint64_t>* correct_detector = new CorrectDetector<uint64_t, uint64_t>(); 
 
+        double query_quantile = query_w;
         clock_t begin,finish;
         clock_t total=0;
         double totaltime, tt;
@@ -604,30 +661,46 @@ public:
 
         total = clock() - tt;
         
-        totaltime=(double)(total)/CLOCKS_PER_SEC;
-        double throughput = double((int)ins.size()) / totaltime;
-        //std::cout <<"throughput: "<<std::fixed<<std::setprecision(4)<< throughput <<" item/s"<< std::endl;
+        double totaltime1 = (double)(total) / CLOCKS_PER_SEC;
+        double throughput1 = double((int)ins.size()) / totaltime1;
 
-        double error = 0;
+        std::vector<uint64_t> qrys, ans; qrys.clear(); ans.clear();
+
+		double error_qs = 0;
         int num = 0;
-        for (int i = 1; i <= cnt; i++) 
-        {
+        for (int i = 1; i <= cnt; i++) {
             if (id_map[i] < 5000)
                 continue;
             num++;
-            
-            uint64_t predict = gk_sketch->query(tid[i], query_w);
-            double predict_quantile = correct_detector->query(tid[i], predict);
-            error += fabs( predict_quantile - query_w );
 
+            qrys.push_back(tid[i]);
         }
-        //std::cout << "Average Error: " << error / num << "\n";
 
-        //gk_sketch->print_status();
+        ans.resize(num);
 
-        //std::cout << "\n";
+        struct timeval t_start, t_end;
+        gettimeofday( &t_start, NULL );
+        double rs = 0.00;
+        for (int i = 0; i < num; i++)
+        {
+            ans[i] = gk_sketch -> query(qrys[i], query_quantile);
+        }
+        gettimeofday( &t_end, NULL );
 
-        return std::make_pair(throughput, error / num);
+        double totaltime2 = (double)(t_end.tv_sec - t_start.tv_sec) + (double)(t_end.tv_usec - t_start.tv_usec) / 1000000.00;
+        double throughput2 = double(num) / totaltime2;
+
+        for (int i = 0; i < num; i++) {
+
+            double predict_quantile_qs = correct_detector -> query(qrys[i], ans[i]);
+
+            //std::cout << tid[i] << " " << predict_quantile_qs << " " << id_map[i] << std::endl;
+
+            error_qs += fabs(predict_quantile_qs - query_quantile);
+            //std::cout << predict_quantile_qs << "\n";
+        }
+
+        return std::make_pair(std::make_pair(throughput1, throughput2), error_qs / num);
     }
 
 private:

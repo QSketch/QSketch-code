@@ -1,17 +1,13 @@
-#include "benchmark.h"
-#include <cmath>
-#include <random>
-#include <ctime>
-#include <chrono>
+#include <bits/stdc++.h>
+#include "Benchmark_SketchPolymer.h"
 using namespace std;
 
-int main(int argc, const char** argv) {
-	freopen("data.out", "w", stdout);
-
-	std::string path1 = "../CAIDA2016/1.dat";
-	std::string path2 = "../zipf_2022/zipf_2.0.dat";
-	std::string path3 = "../Seattle/SeattleData_";
-    std::string path4 = "../tap.dat";
+int main(int argc, char** argv) {
+    freopen("data.out", "w", stdout);
+    string path1 = "../CAIDA2016/1.dat";
+	string path2 = "../zipf_2022/zipf_2.0.dat";
+	string path3 = "../Seattle/SeattleData_";
+    string path4 = "../tap.dat";
 
     std::pair<std::pair<double, double>, double> res[333], cur;
     int cnt = 0;
@@ -22,7 +18,7 @@ int main(int argc, const char** argv) {
         for (int memory = 500; memory <= 1500; memory += 200)
         {
 			++cnt;
-            cur = benchmark.Run(w, memory, 1000);
+            cur = benchmark.Run(w, memory);
             res[cnt] = cur;
         }
     }
@@ -49,14 +45,14 @@ int main(int argc, const char** argv) {
     std::cout << std::endl;
 
     cnt = 0;
-
     zipf_Benchmark benchmark2(path2);
+
     for (double w = 0.10; w < 0.95; w += 0.10)
     {
         for (int memory = 30; memory <= 80; memory += 10)
         {
 			++cnt;
-            cur = benchmark2.Run(w, memory, 10);
+            cur = benchmark2.Run(w, memory);
             res[cnt] = cur;
         }
     }
@@ -85,12 +81,13 @@ int main(int argc, const char** argv) {
     cnt = 0;
 
     Seattle_Benchmark benchmark3(path3);
+
     for (double w = 0.10; w < 0.95; w += 0.10)
     {
         for (int memory = 50; memory <= 100; memory += 10)
         {
 			++cnt;
-            cur = benchmark3.Run(w, memory, 10);
+            cur = benchmark3.Run(w, memory);
             res[cnt] = cur;
         }
     }
@@ -119,12 +116,13 @@ int main(int argc, const char** argv) {
     cnt = 0;
 
     Tap_Benchmark benchmark4(path4);
+
     for (double w = 0.10; w < 0.95; w += 0.10)
     {
         for (int memory = 500; memory <= 1500; memory += 200)
         {
 			++cnt;
-            cur = benchmark4.Run(w, memory, 1000);
+            cur = benchmark4.Run(w, memory);
             res[cnt] = cur;
         }
     }
@@ -149,6 +147,6 @@ int main(int argc, const char** argv) {
     }
 
     std::cout << std::endl;
-
-    return 0;
+    
+	return 0;
 }

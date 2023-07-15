@@ -94,7 +94,7 @@ int main(int argc, const char** argv) {
         std::cout << mn_f << std::endl;
     }*/
 
-    printf("r:\n");
+    /*printf("r:\n");
     for (memory = 500; memory <= 1500; memory += 500)
     {
         mn = 1e9;
